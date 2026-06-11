@@ -1,0 +1,14 @@
+### Report Generation API
+
+POST http://localhost:5000/api/report/generate
+Content-Type: application/json
+
+{
+  "title": "Monthly Sales Report",
+  "content": [
+    "Sales Increased by 25%",
+    "Revenue Improved",
+    "New Customers Added",
+    "Target Completed Successfully"
+  ]
+}

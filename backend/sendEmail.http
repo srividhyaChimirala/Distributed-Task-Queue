@@ -1,0 +1,8 @@
+POST http://localhost:5000/api/send-email
+Content-Type: application/json
+
+{
+  "email": "test@gmail.com",
+  "subject": "Welcome",
+  "message": "Background task working"
+}

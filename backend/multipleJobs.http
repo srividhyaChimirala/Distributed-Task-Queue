@@ -1,0 +1,30 @@
+POST http://localhost:5000/api/send-email
+Content-Type: application/json
+
+{
+  "email": "user1@gmail.com",
+  "subject": "Job 1",
+  "message": "First Queue Job"
+}
+
+###
+
+POST http://localhost:5000/api/send-email
+Content-Type: application/json
+
+{
+  "email": "user2@gmail.com",
+  "subject": "Job 2",
+  "message": "Second Queue Job"
+}
+
+###
+
+POST http://localhost:5000/api/send-email
+Content-Type: application/json
+
+{
+  "email": "user3@gmail.com",
+  "subject": "Job 3",
+  "message": "Third Queue Job"
+}

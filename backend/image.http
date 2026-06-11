@@ -1,0 +1,6 @@
+### Image Processing API
+
+POST http://localhost:5000/api/image/process
+Content-Type: multipart/form-data
+
+image=@sample.jpg
