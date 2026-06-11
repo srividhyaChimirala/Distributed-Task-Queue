@@ -138,10 +138,6 @@ export default function Sidebar() {
             Worker Nodes
           </NavLink>
 
-          <NavLink to="/analytics" className={linkClass}>
-            <BarChart3 size={18} />
-            Analytics
-          </NavLink>
         </nav>
       </div>
     </aside>
