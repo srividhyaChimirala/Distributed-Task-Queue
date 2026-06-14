@@ -1,4 +1,4 @@
-import imageQueue from "../queues/imageQueue.js";
+import { imageQueue } from "../queues/imageQueue.js";
 import Job from "../models/Job.js";
 
 export const processImageController = async (req, res) => {
