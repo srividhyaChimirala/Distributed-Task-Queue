@@ -38,8 +38,8 @@ import express from "express";
 import dotenv from "dotenv";
 import mongoose from "mongoose";
 
-// import connectDB from "./config/db.js";
-import { connectDB } from "./config/db.js";
+import connectDB from "./config/db.js";
+// import { connectDB } from "./config/db.js";
 import emailRoutes from "./routes/emailRoutes.js";
 import imageRoutes from "./routes/imageRoutes.js";
 import reportRoutes from "./routes/reportRoutes.js";
