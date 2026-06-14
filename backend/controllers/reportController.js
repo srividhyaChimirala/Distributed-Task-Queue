@@ -1,4 +1,5 @@
-import reportQueue from "../queues/reportQueue.js";
+// import reportQueue from "../queues/reportQueue.js";
+import { reportQueue } from "../queues/reportQueue.js";
 import Job from "../models/Job.js";
 
 export const generateReportController = async (req, res) => {
