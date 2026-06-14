@@ -1,14 +1,9 @@
-// export default function SubmitTask() {
-//   return (
-//     <div>
-//       Submit Task Page
-//     </div>
-//   );
-// }
+
 
 
 
 import React, { useState } from "react";
+import API from "../services/api";
 import Layout from "../components/Layout";
 import { Mail, Image, FileText, HelpCircle, ArrowRight } from "lucide-react";
 
@@ -17,6 +12,9 @@ export default function SubmitTask() {
   const [taskType, setTaskType] = useState("email");
   // Priority toggle selection state
   const [priority, setPriority] = useState("Normal");
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [reportTitle, setReportTitle] = useState("");
+const [reportContent, setReportContent] = useState("");
 
   // Form Fields State matching your UI structure
   const [formData, setFormData] = useState({
@@ -41,6 +39,93 @@ export default function SubmitTask() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+
+
+//   const handleSubmit = async (e) => {
+//   e.preventDefault();
+
+//   try {
+
+//     const response = await API.post(
+//   "/send-email",
+//   {
+//     email: formData.recipient,
+//     subject: formData.subject,
+//     message: formData.payload,
+//   }
+// );
+
+//     console.log("Task Added:", response.data);
+
+//     alert("Task Added Successfully!");
+
+//   } catch (error) {
+
+//     console.error(error);
+
+//     alert("Failed to add task");
+
+//   }
+// };
+const handleSubmit = async (e) => {
+  e.preventDefault();
+
+  try {
+
+    let response;
+
+    if (taskType === "email") {
+
+      response = await API.post(
+        "/send-email",
+        {
+          email: formData.recipient,
+          subject: formData.subject,
+          message: formData.payload,
+        }
+      );
+
+    } else if (taskType === "image") {
+
+      const form = new FormData();
+
+      form.append("image", selectedFile);
+
+      response = await API.post(
+  "/image/process",
+  form,
+  {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  }
+);
+
+    }
+    else if (taskType === "report") {
+
+  response = await API.post(
+    "/report/generate",
+    {
+      title: reportTitle,
+      content: reportContent,
+    }
+  );
+
+}
+
+    console.log(response.data);
+
+    alert("Task Added Successfully!");
+
+  } catch (error) {
+
+    console.error(error);
+
+    alert("Failed to add task");
+
+  }
+};
   return (
     <Layout>
       <div className="min-h-screen bg-[#0B0F19] text-[#F3F4F6] font-sans antialiased pb-12">
@@ -122,8 +207,7 @@ export default function SubmitTask() {
 
         {/* CORE FORM ENTRY BLOCK GRID */}
         <div className="bg-[#0F1422] border border-[#1E2640] rounded-2xl p-6 shadow-xl">
-          <form onSubmit={(e) => e.preventDefault()} className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            
+<form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-3 gap-6">            
             {/* LEFT AREA FORM FIELDS (Span 2 Columns) */}
             <div className="lg:col-span-2 space-y-5">
               
@@ -162,6 +246,56 @@ export default function SubmitTask() {
                   />
                 </div>
               </div>
+              
+
+              {/* Image Upload Field */}
+{taskType === "image" && (
+  <div className="flex flex-col space-y-2">
+    <label className="text-[11px] font-bold tracking-wider text-slate-400 uppercase font-mono">
+      Upload Image
+    </label>
+
+    <input
+      type="file"
+      accept="image/*"
+      onChange={(e) =>
+        setSelectedFile(e.target.files[0])
+      }
+      className="w-full bg-[#131926] border border-[#222C44] rounded-xl px-4 py-3 text-sm text-white"
+    />
+  </div>
+)}
+
+
+
+
+
+{taskType === "report" && (
+  <>
+    <div className="flex flex-col space-y-2">
+      <label>Report Title</label>
+      <input
+        type="text"
+        value={reportTitle}
+        onChange={(e) => setReportTitle(e.target.value)}
+        className="border p-2 rounded"
+      />
+    </div>
+
+    <div className="flex flex-col space-y-2">
+      <label>Report Content</label>
+      <textarea
+        value={reportContent}
+        onChange={(e) => setReportContent(e.target.value)}
+        className="border p-2 rounded"
+        rows={5}
+      />
+    </div>
+  </>
+)}
+
+
+
 
               {/* Subject & From Two-Column row */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
