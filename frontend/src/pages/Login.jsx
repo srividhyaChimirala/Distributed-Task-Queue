@@ -113,12 +113,33 @@ const handleLogin = async (e) => {
     // use res.data.user. If it's just { name: "..." }, use res.data
     const userData = res.data.user || res.data; 
 
-    localStorage.clear();
-    localStorage.setItem("token", res.data.token);
-    localStorage.setItem("user", JSON.stringify(userData));
+
+
+
+    // localStorage.clear();
+    // localStorage.setItem("token", res.data.token);
+    // localStorage.setItem("user", JSON.stringify(userData));
     
-    setUser(userData); 
-    navigate("/");
+    // setUser(userData); 
+    // navigate("/");
+
+
+    localStorage.setItem("token", res.data.token);
+
+localStorage.setItem(
+  "user",
+  JSON.stringify(res.data.user)
+);
+
+setUser(res.data.user);
+
+navigate("/");
+
+
+
+
+
+
   } catch (err) {
     alert("Login failed");
   }
@@ -134,6 +155,19 @@ const handleLogin = async (e) => {
         <input type="email" placeholder="Email" className="w-full bg-[#131926] p-3 rounded-xl mb-4 border border-[#222C44]" onChange={(e) => setEmail(e.target.value)} />
         <input type="password" placeholder="Password" className="w-full bg-[#131926] p-3 rounded-xl mb-6 border border-[#222C44]" onChange={(e) => setPassword(e.target.value)} />
         <button type="submit" className="w-full bg-[#10B981] p-3 rounded-xl font-bold">Sign In</button>
+        <div className="text-center mt-5">
+  <span className="text-slate-400">
+    New user?
+  </span>
+
+  <button
+    type="button"
+    onClick={() => navigate("/register")}
+    className="ml-2 text-cyan-400 hover:text-cyan-300 font-semibold"
+  >
+    Sign Up
+  </button>
+</div>
       </form>
     </div>
   );
