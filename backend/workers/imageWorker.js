@@ -166,6 +166,10 @@ import Job from "../models/Job.js";
 import { processImage } from "../services/imageService.js";
 import { logThroughput } from "../services/throughputLogger.js";
 import { emitJobEvent } from "../utils/socket.js"; 
+import {
+  registerWorker,
+  updateHeartbeat,
+} from "./heartbeat.js";
 
 await connectDB();
 
@@ -191,6 +195,22 @@ const imageWorker = new Worker(
 //   await logThroughput("completed");
 //   emitJobEvent("stats:update", { jobId: job.id, status: "completed" });
 // });
+
+
+
+await registerWorker("image-worker");
+
+setInterval(() => {
+  updateHeartbeat("image-worker");
+}, 5000);
+
+
+
+
+
+
+
+
 
 imageWorker.on("completed", async (job) => {
   if (job?.data?.userId) {
@@ -234,3 +254,7 @@ imageWorker.on("failed", async (job, err) => {
     status: "failed",
   });
 });
+
+
+
+

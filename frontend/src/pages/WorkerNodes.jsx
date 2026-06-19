@@ -29,14 +29,25 @@ export default function WorkerNodes() {
     };
   }, []);
 
-  const getStatusStyle = (status) => {
-    switch (status) {
-      case "ACTIVE": return "text-[#10B981] bg-[#10B981]/10 border-[#10B981]/20";
-      case "IDLE": return "text-[#F59E0B] bg-[#F59E0B]/10 border-[#F59E0B]/20";
-      default: return "text-red-500 bg-red-500/10 border-red-500/20";
-    }
-  };
+  // const getStatusStyle = (status) => {
+  //   switch (status) {
+  //     case "ACTIVE": return "text-[#10B981] bg-[#10B981]/10 border-[#10B981]/20";
+  //     case "IDLE": return "text-[#F59E0B] bg-[#F59E0B]/10 border-[#F59E0B]/20";
+  //     default: return "text-red-500 bg-red-500/10 border-red-500/20";
+  //   }
+  // };
+const getStatusStyle = (status) => {
+  switch (status) {
+    case "ONLINE":
+      return "text-green-400 bg-green-500/10 border-green-500/30";
 
+    case "OFFLINE":
+      return "text-red-400 bg-red-500/10 border-red-500/30";
+
+    default:
+      return "text-slate-400 bg-slate-500/10 border-slate-500/30";
+  }
+};
   return (
     <Layout>
       <div className="p-6">

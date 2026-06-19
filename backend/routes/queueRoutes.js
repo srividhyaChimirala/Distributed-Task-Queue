@@ -4,6 +4,8 @@ import { emailQueue } from "../queues/emailQueue.js";
 import { imageQueue } from "../queues/imageQueue.js";
 import { reportQueue } from "../queues/reportQueue.js";
 import { protect } from "../middleware/auth.js";
+import connection from "../config/redis.js";
+
 // import { ThroughputStat } from "../models/ThroughputStat.js";
 import Job from "../models/Job.js";
 const router = express.Router();
@@ -352,11 +354,17 @@ router.get("/stats", protect, async (req, res) => {
       (await req.redis?.hgetall("worker_registry")) || {};
 
     const now = Date.now();
+const workers = Object.entries(workerRegistry).map(
+  ([name, timestamp]) => ({
+    name,
+    online: now - Number(timestamp) < 15000,
+    lastHeartbeat: Number(timestamp),
+  })
+);
 
-    const activeWorkersCount = Object.values(workerRegistry).filter(
-      (ts) => now - parseInt(ts) < 15000
-    ).length;
-
+const activeWorkersCount = workers.filter(
+  (w) => w.online
+).length;
     // =====================================================
     // THROUGHPUT FROM JOBS COLLECTION
     // =====================================================
@@ -447,6 +455,7 @@ res.json({
       email: emailCounts,
       image: imageCounts,
       report: reportCounts,
+      workers,
 
       activeWorkers: `${activeWorkersCount}/4`,
 
@@ -671,15 +680,71 @@ router.post("/task/:id/delete", async (req, res) => {
   } catch (error) { res.status(500).json({ error: error.message }); }
 });
 
+
+
+// router.get("/workers", async (req, res) => {
+//   try {
+//     const registry =
+//       await connection.hgetall("worker_registry");
+
+//     const now = Date.now();
+
+//     const workers = Object.entries(registry).map(
+//       ([name, timestamp]) => ({
+//         name,
+//         status:
+//           now - Number(timestamp) < 15000
+//             ? "ONLINE"
+//             : "OFFLINE",
+//         lastHeartbeat: Number(timestamp),
+//       })
+//     );
+
+//     res.json(workers);
+//   } catch (error) {
+//     res.status(500).json({
+//       error: error.message,
+//     });
+//   }
+// });
+
+
+
+
+
 router.get("/workers", async (req, res) => {
-  // Logic: Fetch current health/metrics from your Redis heartbeat store
-  // Example mock response structure for your UI:
-  const activeWorkers = [
-    { name: "worker-iad-01", region: "us-east-1", status: "ACTIVE", cpu: 58, processed: "12,628", failed: 17, uptime: "8d 1h" },
-    // ... add logic to fetch from Redis
-  ];
-  res.json(activeWorkers);
+  try {
+    const registry =
+      await connection.hgetall(
+        "worker_registry"
+      );
+
+    const now = Date.now();
+
+    const workers = Object.entries(
+      registry
+    ).map(([name, timestamp]) => ({
+      name,
+      status:
+        now - Number(timestamp) < 15000
+          ? "ONLINE"
+          : "OFFLINE",
+      lastHeartbeat: Number(timestamp),
+    }));
+
+    res.json(workers);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      message: "Failed to load workers",
+    });
+  }
 });
+
+
+
+
+
 
 
 
@@ -729,6 +794,21 @@ const allTasks = [...formattedEmail, ...formattedImage, ...formattedReport]
     res.status(500).json({ success: false, error: "Failed to load queue" });
   }
 });
+
+router.get("/clear-workers", async (req, res) => {
+  await connection.del(
+    "worker_registry"
+  );
+
+  res.json({
+    success: true,
+  });
+});
+
+
+
+
+
 
 
 export default router;

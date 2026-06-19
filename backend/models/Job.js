@@ -158,6 +158,15 @@ const jobSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    progress: {
+  type: Number,
+  default: 0,
+},
+
+processingTime: {
+  type: Number,
+  default: 0,
+},
 
     failedAt: {
       type: Date,

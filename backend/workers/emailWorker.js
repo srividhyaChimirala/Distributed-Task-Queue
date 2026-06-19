@@ -65,7 +65,10 @@ import Job from "../models/Job.js";
 import { sendEmail } from "../services/emailService.js";
 import { logThroughput } from "../services/throughputLogger.js";
 import { emitJobEvent } from "../utils/socket.js";
-
+import {
+  registerWorker,
+  updateHeartbeat,
+} from "./heartbeat.js";
 await connectDB();
 
 const worker = new Worker(
@@ -118,6 +121,17 @@ const worker = new Worker(
     concurrency: 2,
   }
 );
+
+
+
+// Register worker
+await registerWorker("email-worker");
+
+// Heartbeat every 5 seconds
+setInterval(() => {
+  updateHeartbeat("email-worker");
+}, 5000);
+
 
 worker.on("completed", async (job) => {
   try {
@@ -189,3 +203,6 @@ worker.on("error", (err) => {
 console.log("=================================");
 console.log("Email Worker Started");
 console.log("=================================");
+
+
+

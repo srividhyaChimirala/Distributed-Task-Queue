@@ -174,6 +174,10 @@ import Job from "../models/Job.js";
 import { generateReport } from "../services/reportService.js";
 import { logThroughput } from "../services/throughputLogger.js";
 import { emitJobEvent } from "../utils/socket.js";
+import {
+  registerWorker,
+  updateHeartbeat,
+} from "./heartbeat.js";
 
 await connectDB();
 
@@ -199,6 +203,27 @@ const reportWorker = new Worker(
 //   await logThroughput("completed");
 //   emitJobEvent("stats:update", { jobId: job.id, status: "completed" });
 // });
+
+
+
+
+
+
+
+
+
+await registerWorker("report-worker");
+
+setInterval(() => {
+  updateHeartbeat("report-worker");
+}, 5000);
+
+
+
+
+
+
+
 
 reportWorker.on("completed", async (job) => {
   if (job?.data?.userId) {
@@ -244,3 +269,6 @@ reportWorker.on("failed", async (job, err) => {
     status: "failed",
   });
 });
+
+
+

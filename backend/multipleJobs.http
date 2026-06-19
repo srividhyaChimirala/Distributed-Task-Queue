@@ -28,3 +28,11 @@ Content-Type: application/json
   "subject": "Job 3",
   "message": "Third Queue Job"
 }
+
+
+###
+
+GET http://localhost:5000/api/queue/workers
+
+###
+ GET http://localhost:5000/api/queue/clear-workers
