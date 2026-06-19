@@ -13,23 +13,40 @@ export const generateReportController = async (req, res) => {
       });
     }
 
+    // const dbJob = await Job.create({
+    //   queueName: "reportQueue",
+    //   data: {
+    //     title,
+    //     content,
+    //   },
+    //   status: "pending",
+    // });
     const dbJob = await Job.create({
-      queueName: "reportQueue",
-      data: {
-        title,
-        content,
-      },
-      status: "pending",
-    });
+  userId: req.user.userId,
+  queueName: "reportQueue",
+  data: {
+    title,
+    content,
+  },
+  status: "pending",
+});
 
+    // const job = await reportQueue.add(
+    //   "reportGenerationJob",
+    //   {
+    //     dbJobId: dbJob._id,
+    //     title,
+    //     content,
+    //   },
     const job = await reportQueue.add(
-      "reportGenerationJob",
-      {
-        dbJobId: dbJob._id,
-        title,
-        content,
-      },
-      {
+  "reportGenerationJob",
+  {
+    dbJobId: dbJob._id,
+    userId: req.user.userId,
+    title,
+    content,
+  },  
+    {
         attempts: 3,
         backoff: {
           type: "exponential",

@@ -33,9 +33,14 @@ const [email, setEmail] = useState("");
 
   const fetchStats = async () => {
     try {
-      const res = await API.get("/queue/stats");
+//       const res = await API.get("/queue/stats");
 
-      setStats(res.data);
+//       setStats(res.data);
+const res = await API.get("/queue/stats");
+
+console.log("STATS RESPONSE:", res.data);
+
+setStats(res.data);
       setChartData(res.data.throughput || []);
     } catch (error) {
       console.error("Failed to fetch metric streams:", error);
@@ -71,14 +76,16 @@ useEffect(() => {
   };
 
   // Listen for the standard update event your backend should be emitting
-  socket.on("job:updated", updateStats); 
+  // socket.on("job:updated", updateStats); 
+  socket.on("stats:update", updateStats);
   
   // Keep these if your backend specifically emits them
   socket.on("job:completed", updateStats);
   socket.on("job:failed", updateStats);
 
   return () => {
-    socket.off("job:updated", updateStats);
+    // socket.off("job:updated", updateStats);
+    socket.off("stats:update", updateStats);
     socket.off("job:completed", updateStats);
     socket.off("job:failed", updateStats);
     clearTimeout(timeoutRef.current);
@@ -190,6 +197,25 @@ const systemTotalWorkers =
   stats?.totalWorkersCount ??
   activeWorkersList?.length ??
   1;
+// const totalCompleted =
+//   (stats?.email?.completed || 0) +
+//   (stats?.image?.completed || 0) +
+//   (stats?.report?.completed || 0);
+
+// const totalFailed =
+//   (stats?.email?.failed || 0) +
+//   (stats?.image?.failed || 0) +
+//   (stats?.report?.failed || 0);
+
+// const totalTasks = totalCompleted + totalFailed;
+
+// const successRate =
+//   totalTasks > 0
+//     ? ((totalCompleted / totalTasks) * 100).toFixed(1)
+//     : "0.0";
+
+
+
 const totalCompleted =
   (stats?.email?.completed || 0) +
   (stats?.image?.completed || 0) +
@@ -200,16 +226,30 @@ const totalFailed =
   (stats?.image?.failed || 0) +
   (stats?.report?.failed || 0);
 
-const totalTasks = totalCompleted + totalFailed;
+const totalWaiting =
+  (stats?.email?.waiting || 0) +
+  (stats?.image?.waiting || 0) +
+  (stats?.report?.waiting || 0);
+
+const totalActive =
+  (stats?.email?.active || 0) +
+  (stats?.image?.active || 0) +
+  (stats?.report?.active || 0);
+
+const totalTasks =
+  totalWaiting +
+  totalActive +
+  totalCompleted +
+  totalFailed;
 
 const successRate =
-  totalTasks > 0
-    ? ((totalCompleted / totalTasks) * 100).toFixed(1)
+  totalCompleted + totalFailed > 0
+    ? (
+        (totalCompleted /
+          (totalCompleted + totalFailed)) *
+        100
+      ).toFixed(1)
     : "0.0";
-
-
-
-
 
     const emailTasks =
   (stats?.email?.completed || 0) +
@@ -262,14 +302,36 @@ useEffect(() => {
       {/* HEADER SECTION */}
       <div className="flex justify-between items-start mb-8">
         <div>
-          <span className="text-xs font-bold text-[#6B7280] tracking-widest uppercase block mb-1">Control Plane / Overview</span>
-          <h1 className="text-3xl font-bold tracking-tight text-white">
-            Task throughput is <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#10B981] to-[#3B82F6]">healthy</span>
-          </h1>
-          <p className="text-sm text-slate-400 mt-1">
-            {totalOnlineWorkers} of {systemTotalWorkers} workers online, processing <span className="font-semibold text-white">{stats?.totalThroughputPerMin || 0 } tasks/min</span>.
-          </p>
-        </div>
+  <span className="text-xs font-bold text-[#6B7280] tracking-widest uppercase block mb-1">
+    Control Plane / Overview
+  </span>
+
+  <h1 className="text-3xl font-bold tracking-tight text-white">
+    Task throughput is{" "}
+    <span
+      className={`text-transparent bg-clip-text bg-gradient-to-r ${
+        (stats?.totalThroughputPerMin || 0) > 0
+          ? "from-[#10B981] to-[#3B82F6]"
+          : "from-[#F59E0B] to-[#EF4444]"
+      }`}
+    >
+      {(stats?.totalThroughputPerMin || 0) > 0
+        ? "healthy"
+        : "idle"}
+    </span>
+  </h1>
+
+  <p className="text-sm text-slate-400 mt-1">
+    <span className="font-semibold text-white">
+      {stats?.activeWorkers || "0/4"}
+    </span>{" "}
+    workers online, processing{" "}
+    <span className="font-semibold text-white">
+      {stats?.totalThroughputPerMin || 0}
+    </span>{" "}
+    tasks/min.
+  </p>
+</div>
         <button 
           onClick={() => setIsModalOpen(true)}
           className="flex items-center gap-2 bg-[#10B981] hover:bg-[#059669] text-[#0B0F19] font-semibold px-5 py-2.5 rounded-xl transition-all shadow-[0_4px_20px_rgba(16,185,129,0.2)]"
@@ -287,7 +349,7 @@ useEffect(() => {
             <span className="text-xs font-semibold text-[#9CA3AF] uppercase tracking-wider">Total Tasks</span>
             <Activity className="w-4 h-4 text-[#10B981]" />
           </div>
-          <div className="text-2xl font-bold tracking-tight text-white">
+{/*           <div className="text-2xl font-bold tracking-tight text-white">
             {stats
               ? (stats?.email?.completed || 0) +
                 (stats?.image?.completed || 0) +
@@ -296,7 +358,10 @@ useEffect(() => {
                 (stats?.image?.failed || 0) +
                 (stats?.report?.failed || 0)
               : "..."}
-          </div>
+          </div> */}
+<div className="text-2xl font-bold tracking-tight text-white">
+  {stats ? totalTasks : "..."}
+</div>
           <div className="text-[11px] text-slate-400 font-medium flex items-center gap-0.5 mt-1">
   Total processed tasks
 </div>
@@ -356,105 +421,251 @@ useEffect(() => {
             <span className="text-xs font-semibold text-[#9CA3AF] uppercase tracking-wider">Active Workers</span>
             <Users className="w-4 h-4 text-blue-500" />
           </div>
-          <div className="text-2xl font-bold tracking-tight text-white">
+{/*           <div className="text-2xl font-bold tracking-tight text-white">
             {stats ? `${totalOnlineWorkers}/${systemTotalWorkers}` : ".../..."}
-          </div>
+          </div> */}
+<div className="text-2xl font-bold tracking-tight text-white">
+  {stats?.activeWorkers || "0/4"}
+</div>
         </div>
       </div>
 
       {/* CHARTS GRAPH SECTION */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-        {/* Main Throughput Area Chart */}
-        <div className="lg:col-span-2 bg-[#0F1422] border border-[#1E2640] p-6 rounded-2xl">
-          <div className="flex justify-between items-center mb-6">
-            <div>
-              <h3 className="font-bold text-base text-white">Throughput · last 24h</h3>
-              <p className="text-xs text-[#6B7280] mt-0.5">Completed vs failed tasks per hour</p>
-            </div>
-            <div className="flex items-center gap-4 text-xs font-medium">
-              <div className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-[#10B981]"></span>
-                <span className="text-[#9CA3AF]">Completed</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-red-500"></span>
-                <span className="text-[#9CA3AF]">Failed</span>
-              </div>
-            </div>
-          </div>
+  {/* Main Throughput Area Chart */}
+<div className="lg:col-span-2 bg-[#0F1422] border border-[#1E2640] p-6 rounded-2xl">
+  <div className="flex justify-between items-center mb-6">
+    <div>
+      <h3 className="font-bold text-base text-white">
+        Task Execution Trend
+      </h3>
 
-          <div className="relative h-56 w-full flex flex-col justify-between pt-2">
-            <div className="absolute inset-0 flex flex-col justify-between pointer-events-none text-[10px] text-[#4B5563] font-mono">
-              <div className="w-full border-b border-[#1E2640]/30 pb-1">{yCeiling}</div>
-              <div className="w-full border-b border-[#1E2640]/30 pb-1">{step * 3}</div>
-              <div className="w-full border-b border-[#1E2640]/30 pb-1">{step * 2}</div>
-              <div className="w-full border-b border-[#1E2640]/30 pb-1">{step * 1}</div>
-            </div>
+      <p className="text-xs text-[#6B7280] mt-0.5">
+        Completed vs failed tasks during last 24 hours
+      </p>
+    </div>
 
-            {chartData.length > 0 ? (
-              <svg
-                className="w-full h-full absolute inset-0 z-10 overflow-visible"
-                viewBox="0 0 600 160"
-                preserveAspectRatio="none"
-              >
-                <defs>
-                  <linearGradient id="completedGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#10B981" stopOpacity="0.15" />
-                    <stop offset="100%" stopColor="#10B981" stopOpacity="0" />
-                  </linearGradient>
-                  <linearGradient id="failedGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#EF4444" stopOpacity="0.15" />
-                    <stop offset="100%" stopColor="#EF4444" stopOpacity="0" />
-                  </linearGradient>
-                </defs>
+    <div className="flex items-center gap-4 text-xs font-medium">
+      <div className="flex items-center gap-1.5">
+        <span className="w-2 h-2 rounded-full bg-[#10B981]" />
+        <span className="text-[#9CA3AF]">Completed</span>
+      </div>
 
-                {(() => {
-                  const width = 600;
-                  const height = 160;
-                  const totalPoints = chartData.length;
+      <div className="flex items-center gap-1.5">
+        <span className="w-2 h-2 rounded-full bg-red-500" />
+        <span className="text-[#9CA3AF]">Failed</span>
+      </div>
+    </div>
+  </div>
 
-            // In Dashboard.jsx
-const completedPoints = chartData.map((d, i) => {
-  const x = totalPoints > 1 ? (i / (totalPoints - 1)) * width : width / 2; // Fixed: center if only 1 point
-  const safeCeiling = yCeiling || 1;
-  const y = height - ((d.completed || 0) / safeCeiling) * height;
-  return { x, y };
-});
+  <div className="relative h-64 w-full">
+    {/* Grid */}
+    <div className="absolute inset-0 flex flex-col justify-between pointer-events-none">
+      {[0, 1, 2, 3, 4].map((i) => (
+        <div
+          key={i}
+          className="border-b border-[#1E2640]/40 w-full"
+        />
+      ))}
+    </div>
 
-                  const failedPoints = chartData.map((d, i) => {
-                    const x = totalPoints > 1 ? (i / (totalPoints - 1)) * width : 0;
-                    const y = height - ((d.failed || 0) / yCeiling) * height;
-                    return { x, y };
-                  });
+    {chartData?.length > 0 ? (
+      <>
+        <svg
+          viewBox="0 0 800 240"
+          preserveAspectRatio="none"
+          className="absolute inset-0 w-full h-full"
+        >
+          <defs>
+            <linearGradient
+              id="completedGradient"
+              x1="0"
+              y1="0"
+              x2="0"
+              y2="1"
+            >
+              <stop
+                offset="0%"
+                stopColor="#10B981"
+                stopOpacity="0.25"
+              />
+              <stop
+                offset="100%"
+                stopColor="#10B981"
+                stopOpacity="0"
+              />
+            </linearGradient>
 
-                  const completedPath = completedPoints.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`).join(" ");
-                  const failedPath = failedPoints.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`).join(" ");
+            <linearGradient
+              id="failedGradient"
+              x1="0"
+              y1="0"
+              x2="0"
+              y2="1"
+            >
+              <stop
+                offset="0%"
+                stopColor="#EF4444"
+                stopOpacity="0.20"
+              />
+              <stop
+                offset="100%"
+                stopColor="#EF4444"
+                stopOpacity="0"
+              />
+            </linearGradient>
+          </defs>
 
-                  const completedArea = completedPoints.length > 0 
-                    ? `${completedPath} L ${completedPoints[completedPoints.length - 1].x} ${height} L ${completedPoints[0].x} ${height} Z` 
-                    : "";
-                  const failedArea = failedPoints.length > 0 
-                    ? `${failedPath} L ${failedPoints[failedPoints.length - 1].x} ${height} L ${failedPoints[0].x} ${height} Z` 
-                    : "";
+          {(() => {
+            const width = 800;
+            const height = 220;
 
-                  return (
-                    <>
-                      {completedArea && <path d={completedArea} fill="url(#completedGradient)" />}
-                      {completedPath && <path d={completedPath} fill="none" stroke="#10B981" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />}
+            const yCeiling = Math.max(
+              ...chartData.map((d) =>
+                Math.max(
+                  d.completed || 0,
+                  d.failed || 0
+                )
+              ),
+              5
+            );
 
-                      {failedArea && <path d={failedArea} fill="url(#failedGradient)" />}
-                      {failedPath && <path d={failedPath} fill="none" stroke="#EF4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />}
-                    </>
-                  );
-                })()}
-              </svg>
-            ) : (
-              <div className="absolute inset-0 flex items-center justify-center z-10 text-xs text-slate-600 font-mono">
-                No active timeframe streams detected...
-              </div>
-            )}
-          </div>
-        </div>
+            const completedPoints = chartData.map((d, i) => {
+              const x =
+                chartData.length > 1
+                  ? (i / (chartData.length - 1)) * width
+                  : width / 2;
+
+              const y =
+                height -
+                ((d.completed || 0) / yCeiling) *
+                  (height - 20);
+
+              return { x, y };
+            });
+
+            const failedPoints = chartData.map((d, i) => {
+              const x =
+                chartData.length > 1
+                  ? (i / (chartData.length - 1)) * width
+                  : width / 2;
+
+              const y =
+                height -
+                ((d.failed || 0) / yCeiling) *
+                  (height - 20);
+
+              return { x, y };
+            });
+
+            const completedPath = completedPoints
+              .map(
+                (p, i) =>
+                  `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`
+              )
+              .join(" ");
+
+            const failedPath = failedPoints
+              .map(
+                (p, i) =>
+                  `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`
+              )
+              .join(" ");
+
+            const completedArea =
+              completedPoints.length > 0
+                ? `${completedPath}
+                   L ${
+                     completedPoints[
+                       completedPoints.length - 1
+                     ].x
+                   } ${height}
+                   L ${completedPoints[0].x} ${height}
+                   Z`
+                : "";
+
+            const failedArea =
+              failedPoints.length > 0
+                ? `${failedPath}
+                   L ${
+                     failedPoints[
+                       failedPoints.length - 1
+                     ].x
+                   } ${height}
+                   L ${failedPoints[0].x} ${height}
+                   Z`
+                : "";
+
+            return (
+              <>
+                <path
+                  d={completedArea}
+                  fill="url(#completedGradient)"
+                />
+
+                <path
+                  d={completedPath}
+                  fill="none"
+                  stroke="#10B981"
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+
+                <path
+                  d={failedArea}
+                  fill="url(#failedGradient)"
+                />
+
+                <path
+                  d={failedPath}
+                  fill="none"
+                  stroke="#EF4444"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+
+                {completedPoints.map((p, i) => (
+                  <circle
+                    key={`completed-${i}`}
+                    cx={p.x}
+                    cy={p.y}
+                    r="4"
+                    fill="#10B981"
+                  />
+                ))}
+
+                {failedPoints.map((p, i) => (
+                  <circle
+                    key={`failed-${i}`}
+                    cx={p.x}
+                    cy={p.y}
+                    r="3"
+                    fill="#EF4444"
+                  />
+                ))}
+              </>
+            );
+          })()}
+        </svg>
+
+        {/* Hour Labels */}
+        <div className="absolute bottom-0 left-0 right-0 flex justify-between px-1 text-[10px] text-[#6B7280] font-mono">
+          {chartData.map((item, index) => (
+            <span key={index}>
+              {item.hour}
+            </span>
+          ))}
+        </div>
+      </>
+    ) : (
+      <div className="absolute inset-0 flex items-center justify-center text-sm text-slate-500">
+        No throughput data found
+      </div>
+    )}
+  </div>
+</div>
 
         {/* Queue Mix Donut Chart */}
 

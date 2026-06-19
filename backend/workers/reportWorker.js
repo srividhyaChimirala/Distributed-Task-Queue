@@ -195,12 +195,52 @@ const reportWorker = new Worker(
   { connection, concurrency: 2 }
 );
 
+// reportWorker.on("completed", async (job) => {
+//   await logThroughput("completed");
+//   emitJobEvent("stats:update", { jobId: job.id, status: "completed" });
+// });
+
 reportWorker.on("completed", async (job) => {
-  await logThroughput("completed");
-  emitJobEvent("stats:update", { jobId: job.id, status: "completed" });
+  if (job?.data?.userId) {
+    await logThroughput(
+      "completed",
+      job.data.userId
+    );
+  }
+
+  emitJobEvent("stats:update", {
+    jobId: job.id,
+    userId: job?.data?.userId,
+    status: "completed",
+  });
 });
 
+// reportWorker.on("failed", async (job, err) => {
+//   await Job.findByIdAndUpdate(job.data.dbJobId, { status: "failed", error: err.message, completedAt: new Date() });
+//   emitJobEvent("stats:update", { jobId: job.id, status: "failed" });
+// });
+
+
 reportWorker.on("failed", async (job, err) => {
-  await Job.findByIdAndUpdate(job.data.dbJobId, { status: "failed", error: err.message, completedAt: new Date() });
-  emitJobEvent("stats:update", { jobId: job.id, status: "failed" });
+  await Job.findByIdAndUpdate(
+    job.data.dbJobId,
+    {
+      status: "failed",
+      error: err.message,
+      completedAt: new Date(),
+    }
+  );
+
+  if (job?.data?.userId) {
+    await logThroughput(
+      "failed",
+      job.data.userId
+    );
+  }
+
+  emitJobEvent("stats:update", {
+    jobId: job?.id,
+    userId: job?.data?.userId,
+    status: "failed",
+  });
 });

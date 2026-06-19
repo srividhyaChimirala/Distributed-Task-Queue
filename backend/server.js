@@ -252,6 +252,7 @@ import { emailQueue } from "./queues/emailQueue.js";
 import { imageQueue } from "./queues/imageQueue.js";
 import { reportQueue } from "./queues/reportQueue.js";
 import "./workers/worker.js";
+
 import redis from "./config/redis.js";
 import authRoutes from "./routes/authRoutes.js";
 dotenv.config();
@@ -314,54 +315,54 @@ app.use((req, res, next) => {
 
 // ======================
 // ROUTES
-// ======================
-app.get("/api/queue/stats", async (req, res) => {
-    try {
-        const [emailCounts, imageCounts, reportCounts] = await Promise.all([
-            emailQueue.getJobCounts(),
-            imageQueue.getJobCounts(),
-            reportQueue.getJobCounts(),
-        ]);
+// // ======================
+// app.get("/api/queue/stats", async (req, res) => {
+//     try {
+//         const [emailCounts, imageCounts, reportCounts] = await Promise.all([
+//             emailQueue.getJobCounts(),
+//             imageQueue.getJobCounts(),
+//             reportQueue.getJobCounts(),
+//         ]);
 
-        // 1. Fetch throughput history
-        const last24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
-        const throughput = await ThroughputStat.find({ timestamp: { $gte: last24h } }).sort({ timestamp: 1 });
+//         // 1. Fetch throughput history
+//         const last24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
+//         const throughput = await ThroughputStat.find({ timestamp: { $gte: last24h } }).sort({ timestamp: 1 });
 
-        // 2. FETCH RECENT TASKS (Add this part)
-        // We fetch the last 10 completed or failed jobs from all queues
-        const [emailJobs, imageJobs, reportJobs] = await Promise.all([
-            emailQueue.getJobs(['completed', 'failed'], 0, 5),
-            imageQueue.getJobs(['completed', 'failed'], 0, 5),
-            reportQueue.getJobs(['completed', 'failed'], 0, 5)
-        ]);
+//         // 2. FETCH RECENT TASKS (Add this part)
+//         // We fetch the last 10 completed or failed jobs from all queues
+//         const [emailJobs, imageJobs, reportJobs] = await Promise.all([
+//             emailQueue.getJobs(['completed', 'failed'], 0, 5),
+//             imageQueue.getJobs(['completed', 'failed'], 0, 5),
+//             reportQueue.getJobs(['completed', 'failed'], 0, 5)
+//         ]);
 
-        const recentTasks = [...emailJobs, ...imageJobs, ...reportJobs]
-            .sort((a, b) => b.timestamp - a.timestamp)
-            .slice(0, 10)
-            .map(job => ({
-                id: job.id,
-                title: job.data.subject || "No title",
-                type: job.queue.name.replace('Queue', '').toLowerCase(),
-                status: job.failedReason ? "FAILED" : "COMPLETED",
-                w: "Worker-1", // You can replace this with actual worker info if available
-                ms: `${job.finishedOn - job.processedOn}ms`
-            }));
+//         const recentTasks = [...emailJobs, ...imageJobs, ...reportJobs]
+//             .sort((a, b) => b.timestamp - a.timestamp)
+//             .slice(0, 10)
+//             .map(job => ({
+//                 id: job.id,
+//                 title: job.data.subject || "No title",
+//                 type: job.queue.name.replace('Queue', '').toLowerCase(),
+//                 status: job.failedReason ? "FAILED" : "COMPLETED",
+//                 w: "Worker-1", // You can replace this with actual worker info if available
+//                 ms: `${job.finishedOn - job.processedOn}ms`
+//             }));
 
-        // 3. SEND EVERYTHING
-        res.status(200).json({
-            email: emailCounts,
-            image: imageCounts,
-            report: reportCounts,
-            throughput: throughput,
-            recentTasks: recentTasks, // <--- THIS WAS THE MISSING KEY
-            workers: Array.from(activeWorkers.values()),
-            totalWorkersCount: activeWorkers.size,
-            totalThroughputPerMin: throughput.length > 0 ? throughput[throughput.length - 1].completed : 0
-        });
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
+//         // 3. SEND EVERYTHING
+//         res.status(200).json({
+//             email: emailCounts,
+//             image: imageCounts,
+//             report: reportCounts,
+//             throughput: throughput,
+//             recentTasks: recentTasks, // <--- THIS WAS THE MISSING KEY
+//             workers: Array.from(activeWorkers.values()),
+//             totalWorkersCount: activeWorkers.size,
+//             totalThroughputPerMin: throughput.length > 0 ? throughput[throughput.length - 1].completed : 0
+//         });
+//     } catch (error) {
+//         res.status(500).json({ error: error.message });
+//     }
+// });
 app.use("/api", emailRoutes);
 app.use("/api/image", imageRoutes);
 app.use("/api/report", reportRoutes);

@@ -10,20 +10,35 @@ export const processImageController = async (req, res) => {
       });
     }
 
+    // const dbJob = await Job.create({
+    //   queueName: "imageQueue",
+    //   data: {
+    //     imagePath: req.file.path,
+    //   },
+    //   status: "pending",
+    // });
     const dbJob = await Job.create({
-      queueName: "imageQueue",
-      data: {
-        imagePath: req.file.path,
-      },
-      status: "pending",
-    });
+  userId: req.user.userId,
+  queueName: "imageQueue",
+  data: {
+    imagePath: req.file.path,
+  },
+  status: "pending",
+});
 
+    // const job = await imageQueue.add(
+    //   "imageProcessingJob",
+    //   {
+    //     dbJobId: dbJob._id,
+    //     imagePath: req.file.path,
+    //   },
     const job = await imageQueue.add(
-      "imageProcessingJob",
-      {
-        dbJobId: dbJob._id,
-        imagePath: req.file.path,
-      },
+  "imageProcessingJob",
+  {
+    dbJobId: dbJob._id,
+    userId: req.user.userId,
+    imagePath: req.file.path,
+  },
       {
         attempts: 3,
         backoff: {

@@ -1,138 +1,191 @@
 
+// import 'dotenv/config'; // This loads the .env file automatically
+
+// // ... rest of your imports
 // import { Worker } from "bullmq";
 // import IORedis from "ioredis";
-// import connectDB from "../config/db.js";
-// import { io } from "../server.js";
-
-// await connectDB();
-
+// // import connectDB from "../config/db.js";
+// import { connectDB } from "../config/db.js";
 // import Job from "../models/Job.js";
 // import { sendEmail } from "../services/emailService.js";
-// import deadLetterQueue from "../queues/deadLetterQueue.js";
 // import { logThroughput } from "../services/throughputLogger.js";
-// import { emitJobEvent } from "../utils/socket.js";
-// //import { logThroughput } from "../services/throughputLogger.js";
+// import { emitJobEvent } from "../utils/socket.js"; // 1. IMPORT THIS
 
-// const connection = new IORedis({
-//   maxRetriesPerRequest: null,
-// });
+// await connectDB();
+// const connection = new IORedis({ maxRetriesPerRequest: null });
 
 // const worker = new Worker(
 //   "emailQueue",
-
 //   async (job) => {
+//      console.log("JOB DATA =", job.data);
 //     const { dbJobId, email, subject, message } = job.data;
-
-//     try {
-//       console.log(`PID ${process.pid} started Email Job ${job.id}`);
-
-//       await Job.findByIdAndUpdate(dbJobId, {
-//         status: "processing",
-//         startedAt: new Date(),
-//       });
-
-//       console.log(`PID ${process.pid} sending email to ${email}`);
-
-//       const emailResult = await sendEmail(email, subject, message);
-
-//       console.log(`PID ${process.pid} completed Email Job ${job.id}`);
-
-//       await Job.findByIdAndUpdate(dbJobId, {
-//         status: "completed",
-//         completedAt: new Date(),
-//         result: {
-//           email,
-//           subject,
-//           messageId: emailResult.messageId,
-//           accepted: emailResult.accepted,
-//           response: emailResult.response,
-//         },
-//       });
-
-//       return { success: true };
-
-//     } catch (error) {
-//       console.error(`PID ${process.pid} failed Email Job ${job.id}`);
-//       console.error(error);
-
-//       throw error; // IMPORTANT for BullMQ retry system
-//     }
+//     await Job.findByIdAndUpdate(dbJobId, { status: "processing", startedAt: new Date() });
+//     const emailResult = await sendEmail(email, subject, message);
+//     await Job.findByIdAndUpdate(dbJobId, { status: "completed", completedAt: new Date(), result: emailResult });
+//     return { success: true };
 //   },
-
-//   {
-//     connection,
-//     concurrency: 5,
-//   }
+//   { connection, concurrency: 2 }
 // );
 
-
-
-// //# ✅ COMPLETED EVENT (THROUGHPUT SUCCESS LOGGING)
-
-
 // worker.on("completed", async (job) => {
-//   console.log(`PID ${process.pid} COMPLETED Job ${job.id}`);
-
-//   try {
-//     await logThroughput("completed");
-//   } catch (err) {
-//     console.error("Failed to log throughput (completed)", err);
-//   }
+//   await logThroughput("completed");
+//   // 2. BROADCAST THE UPDATE
+//   emitJobEvent("stats:update", { jobId: job.id, status: "completed" });
 // });
 
-import 'dotenv/config'; // This loads the .env file automatically
+// // worker.on("failed", async (job, err) => {
+// //   await Job.findByIdAndUpdate(job.data.dbJobId, { status: "failed", error: err.message, completedAt: new Date() });
+// //   // 3. BROADCAST THE FAILURE
+// //   emitJobEvent("stats:update", { jobId: job.id, status: "failed" });
+// // });
+// worker.on("failed", async (job, err) => {
+//   await Job.findByIdAndUpdate(
+//     job.data.dbJobId,
+//     {
+//       status: "failed",
+//       error: err.message,
+//       failedAt: new Date()
+//     }
+//   );
 
-// ... rest of your imports
+//   await logThroughput("failed");
+
+//   emitJobEvent("stats:update", {
+//     jobId: job.id,
+//     status: "failed"
+//   });
+// });
+import "dotenv/config";
+
 import { Worker } from "bullmq";
-import IORedis from "ioredis";
-// import connectDB from "../config/db.js";
+import connection from "../config/redis.js";
+
 import { connectDB } from "../config/db.js";
 import Job from "../models/Job.js";
 import { sendEmail } from "../services/emailService.js";
 import { logThroughput } from "../services/throughputLogger.js";
-import { emitJobEvent } from "../utils/socket.js"; // 1. IMPORT THIS
+import { emitJobEvent } from "../utils/socket.js";
 
 await connectDB();
-const connection = new IORedis({ maxRetriesPerRequest: null });
 
 const worker = new Worker(
   "emailQueue",
   async (job) => {
-     console.log("JOB DATA =", job.data);
-    const { dbJobId, email, subject, message } = job.data;
-    await Job.findByIdAndUpdate(dbJobId, { status: "processing", startedAt: new Date() });
-    const emailResult = await sendEmail(email, subject, message);
-    await Job.findByIdAndUpdate(dbJobId, { status: "completed", completedAt: new Date(), result: emailResult });
-    return { success: true };
+    console.log("EMAIL JOB DATA =", job.data);
+
+    const {
+      dbJobId,
+      userId,
+      email,
+      subject,
+      message,
+    } = job.data;
+
+    try {
+      await Job.findByIdAndUpdate(dbJobId, {
+        status: "processing",
+        startedAt: new Date(),
+      });
+
+      const emailResult = await sendEmail(
+        email,
+        subject,
+        message
+      );
+
+      await Job.findByIdAndUpdate(dbJobId, {
+        status: "completed",
+        completedAt: new Date(),
+        result: emailResult,
+      });
+
+      return {
+        success: true,
+        userId,
+      };
+    } catch (error) {
+      await Job.findByIdAndUpdate(dbJobId, {
+        status: "failed",
+        error: error.message,
+        failedAt: new Date(),
+      });
+
+      throw error;
+    }
   },
-  { connection, concurrency: 2 }
+  {
+    connection,
+    concurrency: 2,
+  }
 );
 
 worker.on("completed", async (job) => {
-  await logThroughput("completed");
-  // 2. BROADCAST THE UPDATE
-  emitJobEvent("stats:update", { jobId: job.id, status: "completed" });
+  try {
+    if (job?.data?.userId) {
+      await logThroughput(
+        "completed",
+        job.data.userId
+      );
+    }
+
+    emitJobEvent("stats:update", {
+      jobId: job.id,
+      userId: job?.data?.userId,
+      status: "completed",
+    });
+
+    console.log(`Email job ${job.id} completed`);
+  } catch (error) {
+    console.error(
+      "Completed handler error:",
+      error
+    );
+  }
 });
 
-// worker.on("failed", async (job, err) => {
-//   await Job.findByIdAndUpdate(job.data.dbJobId, { status: "failed", error: err.message, completedAt: new Date() });
-//   // 3. BROADCAST THE FAILURE
-//   emitJobEvent("stats:update", { jobId: job.id, status: "failed" });
-// });
 worker.on("failed", async (job, err) => {
-  await Job.findByIdAndUpdate(
-    job.data.dbJobId,
-    {
+  try {
+    if (job?.data?.dbJobId) {
+      await Job.findByIdAndUpdate(
+        job.data.dbJobId,
+        {
+          status: "failed",
+          error: err.message,
+          failedAt: new Date(),
+        }
+      );
+    }
+
+    if (job?.data?.userId) {
+      await logThroughput(
+        "failed",
+        job.data.userId
+      );
+    }
+
+    emitJobEvent("stats:update", {
+      jobId: job?.id,
+      userId: job?.data?.userId,
       status: "failed",
       error: err.message,
-      failedAt: new Date()
-    }
-  );
+    });
 
-  await logThroughput("failed");
-
-  emitJobEvent("stats:update", {
-    jobId: job.id,
-    status: "failed"
-  });
+    console.error(
+      `Email job ${job?.id} failed:`,
+      err.message
+    );
+  } catch (error) {
+    console.error(
+      "Failed handler error:",
+      error
+    );
+  }
 });
+
+worker.on("error", (err) => {
+  console.error("Email Worker Error:", err);
+});
+
+console.log("=================================");
+console.log("Email Worker Started");
+console.log("=================================");
