@@ -70,22 +70,33 @@ import { emailQueue } from "../queues/emailQueue.js";
 export const sendEmail = async (req, res) => {
   try {
     const { email, subject, message } = req.body;
-
+console.log("REQ.USER =", req.user);
     // Make sure route is protected by auth middleware
     const userId = req.user.userId;
 
     // Create DB job record
+    // const newJob = await Job.create({
+    //   user: userId,
+    //   queueName: "emailQueue",
+    //   data: {
+    //     email,
+    //     subject,
+    //     message,
+    //   },
+    //   status: "pending",
+    //   createdAt: new Date(),
+    // });
     const newJob = await Job.create({
-      user: userId,
-      queueName: "emailQueue",
-      data: {
-        email,
-        subject,
-        message,
-      },
-      status: "pending",
-      createdAt: new Date(),
-    });
+  userId: userId,
+  queueName: "emailQueue",
+  data: {
+    email,
+    subject,
+    message,
+  },
+  status: "pending",
+  createdAt: new Date(),
+});
 
     console.log("QUEUE USER =", userId);
 

@@ -2,7 +2,15 @@ import Layout from "../components/Layout";
 import { useEffect, useState, useRef } from "react";
 import API from "../services/api";
 import socket from "../services/socket";
-
+// import {
+//   ResponsiveContainer,
+//   AreaChart,
+//   Area,
+//   XAxis,
+//   YAxis,
+//   CartesianGrid,
+//   Tooltip,
+// } from "recharts";
 import { 
   Activity, 
   Clock, 
@@ -521,15 +529,24 @@ useEffect(() => {
             const width = 800;
             const height = 220;
 
-            const yCeiling = Math.max(
-              ...chartData.map((d) =>
-                Math.max(
-                  d.completed || 0,
-                  d.failed || 0
-                )
-              ),
-              5
-            );
+            // const yCeiling = Math.max(
+            //   ...chartData.map((d) =>
+            //     Math.max(
+            //       d.completed || 0,
+            //       d.failed || 0
+            //     )
+            //   ),
+            //   5
+            // );
+            const yCeiling =
+  Math.max(
+    ...chartData.map((d) =>
+      Math.max(
+        d.completed || 0,
+        d.failed || 0
+      )
+    )
+  ) + 5;
 
             const completedPoints = chartData.map((d, i) => {
               const x =
@@ -559,19 +576,37 @@ useEffect(() => {
               return { x, y };
             });
 
-            const completedPath = completedPoints
-              .map(
-                (p, i) =>
-                  `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`
-              )
-              .join(" ");
+            // const completedPath = completedPoints
+            //   .map(
+            //     (p, i) =>
+            //       `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`
+            //   )
+            //   .join(" ");
+            const completedPath =
+  completedPoints.length > 0
+    ? completedPoints
+        .map(
+          (p, i) =>
+            `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`
+        )
+        .join(" ")
+    : "";
 
-            const failedPath = failedPoints
-              .map(
-                (p, i) =>
-                  `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`
-              )
-              .join(" ");
+            // const failedPath = failedPoints
+            //   .map(
+            //     (p, i) =>
+            //       `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`
+            //   )
+            //   .join(" ");
+            const failedPath =
+  failedPoints.length > 0
+    ? failedPoints
+        .map(
+          (p, i) =>
+            `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`
+        )
+        .join(" ")
+    : "";
 
             const completedArea =
               completedPoints.length > 0
@@ -782,7 +817,7 @@ Report Tasks ({reportPct}%)            </div>
               <p className="text-xs text-[#6B7280] mt-0.5">Latest executions across all queues</p>
             </div>
 {/*             <a href="#view-queue" className="text-xs text-[#10B981] hover:underline font-medium">View queue →</a> */}
-<button 
+{/* <button 
   onClick={() => {
     setIsQueueOpen(true);
     fetchAllTasks();   // ✅ ADD THIS
@@ -790,7 +825,7 @@ Report Tasks ({reportPct}%)            </div>
   className="text-xs text-[#10B981] hover:underline font-medium"
 >
   View full queue →
-</button>
+</button> */}
           </div>
 
           <div className="space-y-3">
@@ -851,7 +886,7 @@ Report Tasks ({reportPct}%)            </div>
                 <h3 className="font-bold text-base text-white">Top workers</h3>
                 <p className="text-xs text-[#6B7280] mt-0.5">Live utilization</p>
               </div>
-              <a href="#all-nodes" className="text-xs text-[#10B981] hover:underline font-medium">All nodes →</a>
+{/*               <a href="#all-nodes" className="text-xs text-[#10B981] hover:underline font-medium">All nodes →</a> */}
             </div>
 
             <div className="space-y-5">

@@ -417,17 +417,27 @@ const activeWorkersCount = workers.filter(
       hourlyMap[hour].failed += 1;
     });
 
-    const throughput = Object.values(hourlyMap);
 
-// Remove empty hours
-const filteredThroughput = throughput.filter(
-  (t) => t.completed > 0 || t.failed > 0
-);
+// // Remove empty hours
+// const filteredThroughput = throughput.filter(
+//   (t) => t.completed > 0 || t.failed > 0
+// );
 
-const chartThroughput =
-  filteredThroughput.length > 0
-    ? filteredThroughput
-    : throughput;
+// const chartThroughput =
+//   filteredThroughput.length > 0
+//     ? filteredThroughput
+//     : throughput;
+
+// const maxCompleted = Math.max(
+//   ...chartThroughput.map((t) =>
+//     Math.max(t.completed, t.failed)
+//   ),
+//   10
+// );
+const chartThroughput = Object.values(hourlyMap);
+// Debug output
+console.log("THROUGHPUT DATA");
+console.table(chartThroughput);
 
 const maxCompleted = Math.max(
   ...chartThroughput.map((t) =>
@@ -435,7 +445,6 @@ const maxCompleted = Math.max(
   ),
   10
 );
-
     // =====================================================
     // RECENT TASKS
     // =====================================================
@@ -462,12 +471,11 @@ res.json({
       throughput: chartThroughput,
 
       graphCeiling: Math.ceil(maxCompleted / 10) * 10,
-
-      totalThroughputPerMin:
-        throughput.reduce(
-          (sum, item) => sum + item.completed,
-          0
-        ) || 0,
+totalThroughputPerMin:
+  chartThroughput.reduce(
+    (sum, item) => sum + item.completed,
+    0
+  ) || 0,
 
       recentTasks: recentTasks.map((j) => ({
         id: j._id,

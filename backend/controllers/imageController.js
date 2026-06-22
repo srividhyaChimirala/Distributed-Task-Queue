@@ -3,6 +3,14 @@ import Job from "../models/Job.js";
 
 export const processImageController = async (req, res) => {
   try {
+
+
+
+console.log("REQ.USER =", req.user);
+console.log("REQ.FILE =", req.file);
+
+
+
     if (!req.file) {
       return res.status(400).json({
         success: false,
@@ -56,10 +64,19 @@ export const processImageController = async (req, res) => {
       message: "Image Job Added Successfully",
       jobId: job.id,
     });
+  // } catch (error) {
+  //   res.status(500).json({
+  //     success: false,
+  //     error: error.message,
+  //   });
+  // }
+
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: error.message,
-    });
-  }
+  console.error("IMAGE ERROR:", error);
+
+  res.status(500).json({
+    success: false,
+    error: error.message,
+  });
+}
 };
