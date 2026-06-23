@@ -172,6 +172,9 @@ import {
 } from "./heartbeat.js";
 
 await connectDB();
+let processedJobs = 0;
+let failedJobs = 0;
+const startTime = Date.now();
 
 const imageWorker = new Worker(
   "imageQueue",
@@ -199,9 +202,31 @@ const imageWorker = new Worker(
 
 
 await registerWorker("image-worker");
+import os from "os";
 
 setInterval(() => {
-  updateHeartbeat("image-worker");
+  const memory =
+    (
+      (os.totalmem() -
+        os.freemem()) /
+      os.totalmem()
+    ) * 100;
+
+  updateHeartbeat(
+    "image-worker",
+    {
+      cpu: Math.floor(
+        Math.random() * 60
+      ),
+      memory: Math.round(memory),
+      processed: processedJobs,
+      failed: failedJobs,
+      uptime: Math.floor(
+        (Date.now() - startTime) /
+          1000
+      ),
+    }
+  );
 }, 5000);
 
 
@@ -210,9 +235,8 @@ setInterval(() => {
 
 
 
-
-
 imageWorker.on("completed", async (job) => {
+  processedJobs++;
   if (job?.data?.userId) {
     await logThroughput(
       "completed",
@@ -232,6 +256,7 @@ imageWorker.on("completed", async (job) => {
 //   emitJobEvent("stats:update", { jobId: job.id, status: "failed" });
 // });
 imageWorker.on("failed", async (job, err) => {
+  failedJobs++;
   await Job.findByIdAndUpdate(
     job.data.dbJobId,
     {

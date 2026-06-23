@@ -1,38 +1,93 @@
-import connection from "../config/redis.js";
+// import connection from "../config/redis.js";
 
-// // Call this function inside your worker's initialization
+
+
+
 // export const registerWorker = async (workerName) => {
 //   const now = Date.now();
-//   // Register worker in a Redis Hash with a timestamp
-//   await connection.hset("worker_registry", workerName, now);
+
+//   await connection.hset(
+//     "worker_registry",
+//     workerName,
+//     now
+//   );
+
+//   console.log("REGISTERED:", workerName);
 // };
 
-// // Call this periodically (every 5-10 seconds)
 // export const updateHeartbeat = async (workerName) => {
-//   await connection.hset("worker_registry", workerName, Date.now());
+//   const now = Date.now();
+
+//   await connection.hset(
+//     "worker_registry",
+//     workerName,
+//     now
+//   );
+
+//   console.log("HEARTBEAT:", workerName, now);
 // };
 
 
-export const registerWorker = async (workerName) => {
-  const now = Date.now();
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import os from "os";
+import connection from "../config/redis.js";
+
+// export const registerWorker = async (
+//   workerName
+// ) => {
+//   await connection.hset(
+//     "worker_registry",
+//     workerName,
+//     Date.now()
+//   );
+// };
+export const registerWorker = async (
+  workerName
+) => {
   await connection.hset(
     "worker_registry",
     workerName,
-    now
+    JSON.stringify({
+      workerName,
+      cpu: 0,
+      memory: 0,
+      processed: 0,
+      failed: 0,
+      uptime: 0,
+      lastHeartbeat: Date.now(),
+    })
   );
-
-  console.log("REGISTERED:", workerName);
 };
 
-export const updateHeartbeat = async (workerName) => {
-  const now = Date.now();
-
+export const updateHeartbeat = async (
+  workerName,
+  stats = {}
+) => {
   await connection.hset(
     "worker_registry",
     workerName,
-    now
+    JSON.stringify({
+      workerName,
+      cpu: stats.cpu || 0,
+      memory: stats.memory || 0,
+      processed: stats.processed || 0,
+      failed: stats.failed || 0,
+      uptime: stats.uptime || 0,
+      lastHeartbeat: Date.now(),
+    })
   );
-
-  console.log("HEARTBEAT:", workerName, now);
 };

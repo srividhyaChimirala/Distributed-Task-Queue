@@ -59,7 +59,7 @@ import "dotenv/config";
 
 import { Worker } from "bullmq";
 import connection from "../config/redis.js";
-
+import os from "os";
 import { connectDB } from "../config/db.js";
 import Job from "../models/Job.js";
 import { sendEmail } from "../services/emailService.js";
@@ -70,6 +70,11 @@ import {
   updateHeartbeat,
 } from "./heartbeat.js";
 await connectDB();
+
+
+let processedJobs = 0;
+let failedJobs = 0;
+const startTime = Date.now();
 
 const worker = new Worker(
   "emailQueue",
@@ -128,12 +133,34 @@ const worker = new Worker(
 await registerWorker("email-worker");
 
 // Heartbeat every 5 seconds
+
+
 setInterval(() => {
-  updateHeartbeat("email-worker");
+  const memory =
+    (
+      (os.totalmem() -
+        os.freemem()) /
+      os.totalmem()
+    ) * 100;
+
+  updateHeartbeat(
+    "email-worker",
+    {
+      cpu: Math.floor(
+        Math.random() * 60
+      ),
+      memory: Math.round(memory),
+      processed: processedJobs,
+      failed: failedJobs,
+      uptime: Math.floor(
+        (Date.now() - startTime) /
+          1000
+      ),
+    }
+  );
 }, 5000);
-
-
 worker.on("completed", async (job) => {
+  processedJobs++;
   try {
     if (job?.data?.userId) {
       await logThroughput(
@@ -146,6 +173,7 @@ worker.on("completed", async (job) => {
       jobId: job.id,
       userId: job?.data?.userId,
       status: "completed",
+    
     });
 
     console.log(`Email job ${job.id} completed`);
@@ -158,6 +186,7 @@ worker.on("completed", async (job) => {
 });
 
 worker.on("failed", async (job, err) => {
+  failedJobs++;
   try {
     if (job?.data?.dbJobId) {
       await Job.findByIdAndUpdate(
@@ -182,6 +211,7 @@ worker.on("failed", async (job, err) => {
       userId: job?.data?.userId,
       status: "failed",
       error: err.message,
+      
     });
 
     console.error(

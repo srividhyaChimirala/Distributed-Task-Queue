@@ -45,9 +45,9 @@ export default function Topbar() {
   return (
     <header className="h-16 border-b border-slate-800 bg-[#030712] px-6 flex items-center justify-end">
       <div className="flex items-center gap-4">
-        <button className="text-slate-400 hover:text-white transition-colors">
+        {/* <button className="text-slate-400 hover:text-white transition-colors">
           <Bell size={18} />
-        </button>
+        </button> */}
 
         <div className="relative">
           <button

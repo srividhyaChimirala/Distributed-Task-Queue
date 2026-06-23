@@ -720,6 +720,36 @@ router.post("/task/:id/delete", async (req, res) => {
 
 
 
+// router.get("/workers", async (req, res) => {
+//   try {
+//     const registry =
+//       await connection.hgetall(
+//         "worker_registry"
+//       );
+
+//     const now = Date.now();
+
+//     const workers = Object.entries(
+//       registry
+//     ).map(([name, timestamp]) => ({
+//       name,
+//       status:
+//         now - Number(timestamp) < 15000
+//           ? "ONLINE"
+//           : "OFFLINE",
+//       lastHeartbeat: Number(timestamp),
+//     }));
+
+//     res.json(workers);
+//   } catch (error) {
+//     console.error(error);
+//     res.status(500).json({
+//       message: "Failed to load workers",
+//     });
+//   }
+// });
+
+
 router.get("/workers", async (req, res) => {
   try {
     const registry =
@@ -729,28 +759,31 @@ router.get("/workers", async (req, res) => {
 
     const now = Date.now();
 
-    const workers = Object.entries(
+    const workers = Object.values(
       registry
-    ).map(([name, timestamp]) => ({
-      name,
-      status:
-        now - Number(timestamp) < 15000
-          ? "ONLINE"
-          : "OFFLINE",
-      lastHeartbeat: Number(timestamp),
-    }));
+    ).map((item) => {
+      const worker =
+        JSON.parse(item);
+
+      return {
+        ...worker,
+        status:
+          now -
+            worker.lastHeartbeat <
+          15000
+            ? "ONLINE"
+            : "OFFLINE",
+      };
+    });
 
     res.json(workers);
   } catch (error) {
-    console.error(error);
     res.status(500).json({
-      message: "Failed to load workers",
+      message:
+        "Failed to load workers",
     });
   }
 });
-
-
-
 
 
 
